@@ -1,7 +1,5 @@
-import os, json, time
+import socket, os, json, time
 from dotenv import load_dotenv
-
-# Import the client constructor from Groq's library
 from groq import Groq
 
 # Load the env variable containing the API key
@@ -42,14 +40,28 @@ def query_llm(prompt):
     # Return the dictionary
     return ret_dict
 
-# Open the text file "input.txt" with the prompts
-with open('input.txt', 'r') as file:
-    output = []
-    # Read the prompts line-by-line and retrieve the responses
-    for line in file:
-        # Add each response to a list
-        output.append(query_llm(line.strip()))
+# The server will be hosted on port 65432 of the localhost
+SERVER = ('localhost', 65432)
 
-# Output the list of dictionaries as a JSON array in "output.json"
-with open('output.json', 'w') as json_file:
-    json.dump(output, json_file, indent=4)
+# Create a socket specifying IPv4 (AF_INET) and TCP (SOCK_STREAM)
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Bind the socket to the specified port of the host
+server_socket.bind(SERVER)
+# Listen for requests from clients
+server_socket.listen()
+
+while True:
+    # Accept incoming requests from clients
+    comm_socket, address = server_socket.accept()
+    print(f'Connected to {address}')
+    data = comm_socket.recv(1024).decode('utf-8')
+    if not data:
+        break
+    # Load the JSON formatted request
+    request = json.loads(data)
+    # Process the request (API call to LLM)
+    response = query_llm(request["Prompt"])
+    # Add the client's ID to the response
+    response["ClientID"] = request.get("ClientID", "unknown")
+    # Send the complete response back to the client
+    comm_socket.sendall(json.dumps(response).encode('utf-8'))
