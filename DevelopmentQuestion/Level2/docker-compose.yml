@@ -1,0 +1,46 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    image: dashlab-development-server
+    ports:
+      - "65432:65432"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    networks:
+      - groq-network
+
+  client1:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    image: dashlab-development-client
+    depends_on:
+      - server
+    networks:
+      - groq-network
+
+  client2:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    image: dashlab-development-client
+    depends_on:
+      - server
+    networks:
+      - groq-network
+
+  client3:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    image: dashlab-development-client
+    depends_on:
+      - server
+    networks:
+      - groq-network
+
+networks:
+  groq-network:
+    driver: bridge
