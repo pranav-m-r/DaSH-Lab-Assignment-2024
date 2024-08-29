@@ -51,9 +51,7 @@ def client_fn(context: Context):
     # Return Client instance
     return FlowerClient(net, trainloader, valloader, local_epochs).to_client()
 
-"""
 # Flower ClientApp
 app = ClientApp(
     client_fn,
 )
-"""
