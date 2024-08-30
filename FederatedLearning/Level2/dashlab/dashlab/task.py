@@ -66,18 +66,41 @@ def load_data(partition_id: int, num_partitions: int):
     return trainloader, testloader
 
 
-def train(net, trainloader, valloader, epochs, device):
+"""
+The distillation_loss function has been implemented.
+The train and test functions have been updated to use knowledge distillation.
+"""
+
+def distillation_loss(student_outputs, teacher_outputs, labels, temperature=1, alpha=0.5):
+    """Computes the distillation loss for the model."""
+    # Cross-entropy loss
+    ce_loss = F.cross_entropy(student_outputs, labels)
+    # KL divergence loss
+    targets = F.log_softmax(teacher_outputs / temperature, dim=1)
+    softmax = F.log_softmax(student_outputs / temperature, dim=1)
+    kl_loss = F.kl_div(softmax, targets, reduction='batchmean') * (temperature ** 2)
+    # Total loss
+    loss = alpha * kl_loss + (1 - alpha) * ce_loss
+    return loss
+
+
+def train(net, trainloader, valloader, epochs, device, teacher_net):
     """Train the model on the training set."""
     net.to(device)  # move model to GPU if available
-    criterion = torch.nn.CrossEntropyLoss().to(device)
-    optimizer = torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+    teacher_net.to(device)
+    optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
     net.train()
     for _ in range(epochs):
         for batch in trainloader:
             images = batch["img"]
             labels = batch["label"]
             optimizer.zero_grad()
-            criterion(net(images.to(DEVICE)), labels.to(DEVICE)).backward()
+            outputs = net(images.to(device))
+            with torch.no_grad():
+                teacher_outputs = teacher_net(images.to(device))
+            loss = distillation_loss(outputs, teacher_outputs, labels.to(device))
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
             optimizer.step()
 
     train_loss, train_acc = test(net, trainloader)
@@ -94,6 +117,8 @@ def train(net, trainloader, valloader, epochs, device):
 
 def test(net, testloader):
     """Validate the model on the test set."""
+    net.to(DEVICE)
+    net.eval()
     criterion = torch.nn.CrossEntropyLoss()
     correct, loss = 0, 0.0
     with torch.no_grad():
@@ -104,6 +129,7 @@ def test(net, testloader):
             loss += criterion(outputs, labels).item()
             correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
     accuracy = correct / len(testloader.dataset)
+    loss /= len(testloader.dataset)
     return loss, accuracy
 
 
