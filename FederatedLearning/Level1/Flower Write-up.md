@@ -12,13 +12,14 @@ In the flower framework, the client app is created using a client function call 
 
 ## Strategy
 The strategy defined in for a flower workflow allows the customization of the federated learning process.  
-We can use and build upon popular algorithms such as FedAvg (which is the strategy used in the guide). My explanations for the server and clients is also partially derived from the FedAvg strategy because I have only interacted with this type of model.
+We can use and build upon popular algorithms such as FedAvg (which is the strategy used in the guide).  
+  
+The strategy can be customized by changing parameters like fraction fit (fraction of available clients used for training), fraction_evaluate (fraction of available clients used for testing), initial parameters (initial parameters for the global model), minimum available clients (minimum available clients for the learning process to start), etc.
 
 ## FL Lifecycle
-FedAvg or the Federated Averaging algorithm works in this way:
+The FL lifecycle using the FedAvg or the Federated Averaging algorithm works in this way:
 1. There is a global model initialized on the server.
 2. In each round of training, the server selects a subset of available clients to participate in the training process.
 3. These clients get the global parameters and train the model on their local data.
 4. The updated parameters are sent back to the server, which aggregates them and updates the global model with the new parameters.
-  
-The strategy can be customized by changing parameters like fraction fit (fraction of available clients used for training), fraction_evaluate (fraction of available clients used for testing), initial parameters (initial parameters for the global model), minimum available clients (minimum available clients for the learning process to start), etc.
+5. FedAvg conducts the aggregation by weighted averaging the parameters proportional to the amount of data that the client trained on.
